@@ -171,7 +171,7 @@ export default function Account() {
                   placeholder="your_username"
                 />
                 <p className="text-xs text-zinc-500 mt-2">
-                  Profile link: <span className="text-red-400">zxchub.online/profile/{username}</span>. Only letters, numbers, underscores (3–32 chars).
+                  Profile link: <span className="text-red-400">zxchub.online/profile/{formData.username || "username"}</span>. Only letters, numbers, underscores (3–32 chars).
                 </p>
               </div>
 
