@@ -162,8 +162,8 @@ service cloud.firestore {
              isValidEmail(request.resource.data.email) &&
              isValidOptionalString('name', 1, 100) &&
              isValidOptionalString('username', 1, 32) &&
-             isValidOptionalString('photoURL', 1, 100000) &&
-             isValidOptionalString('bannerURL', 1, 100000) &&
+             (!('photoURL' in request.resource.data) || request.resource.data.photoURL is string) &&
+             (!('bannerURL' in request.resource.data) || request.resource.data.bannerURL is string) &&
              isValidOptionalString('bio', 1, 500) &&
              (!('isOfficial' in request.resource.data) || request.resource.data.isOfficial is bool) &&
              (!('warns' in request.resource.data) || request.resource.data.warns is number) &&

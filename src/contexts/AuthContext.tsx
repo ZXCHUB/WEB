@@ -57,8 +57,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         try {
           const userDocRef = doc(db, 'users', currentUser.uid);
           
-          // Update lastSeen
-          await setDoc(userDocRef, { lastSeen: serverTimestamp() }, { merge: true });
+          // Update lastSeen - wrapped so it never breaks auth flow
+          try {
+            await setDoc(userDocRef, { lastSeen: serverTimestamp() }, { merge: true });
+          } catch (_) {}
           
           const userDoc = await getDoc(userDocRef);
           
@@ -120,6 +122,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         } catch (error) {
           console.error("Error checking admin status:", error);
           setIsAdmin(false);
+          setIsModerator(false);
+          setIsOwner(false);
           setUserData(null);
         }
       } else {
