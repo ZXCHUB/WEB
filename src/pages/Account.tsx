@@ -1,51 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import { motion } from 'motion/react';
-import { Save, User as UserIcon, Image as ImageIcon, FileText, ShieldAlert, CheckCircle2, Upload } from 'lucide-react';
+import { Save, User as UserIcon, Image as ImageIcon, FileText, ShieldAlert } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import RoleBadge from '../components/RoleBadge';
-
-const compressImage = (file: File, maxWidth: number, maxHeight: number, quality: number = 0.7): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = (event) => {
-      const img = new Image();
-      img.src = event.target?.result as string;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height) {
-          if (width > maxWidth) {
-            height = Math.round((height * maxWidth) / width);
-            width = maxWidth;
-          }
-        } else {
-          if (height > maxHeight) {
-            width = Math.round((width * maxHeight) / height);
-            height = maxHeight;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          reject(new Error('Failed to get canvas context'));
-          return;
-        }
-        ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', quality));
-      };
-      img.onerror = (error) => reject(error);
-    };
-    reader.onerror = (error) => reject(error);
-  });
-};
+import ImageUploader from '../components/ImageUploader';
 
 export default function Account() {
   const { user, userData, loading } = useAuth();
@@ -61,9 +22,6 @@ export default function Account() {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   
-  const avatarInputRef = useRef<HTMLInputElement>(null);
-  const bannerInputRef = useRef<HTMLInputElement>(null);
-
   useEffect(() => {
     if (!loading && !user) {
       navigate('/');
@@ -81,32 +39,6 @@ export default function Account() {
       });
     }
   }, [userData]);
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'banner') => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 5 * 1024 * 1024) {
-      setMessage({ type: 'error', text: 'Image size should be less than 5MB.' });
-      return;
-    }
-
-    try {
-      setMessage({ type: '', text: '' });
-      // Compress avatar to 256x256, banner to 1200x400
-      const maxWidth = type === 'avatar' ? 256 : 1200;
-      const maxHeight = type === 'avatar' ? 256 : 400;
-      const base64Image = await compressImage(file, maxWidth, maxHeight, 0.8);
-      
-      setFormData(prev => ({
-        ...prev,
-        [type === 'avatar' ? 'photoURL' : 'bannerURL']: base64Image
-      }));
-    } catch (error) {
-      console.error("Error compressing image:", error);
-      setMessage({ type: 'error', text: 'Failed to process image.' });
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -243,63 +175,23 @@ export default function Account() {
                 </p>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-1.5 flex items-center gap-2">
-                  <ImageIcon className="w-4 h-4" /> Avatar Image
-                </label>
-                <div className="flex items-center gap-4">
-                  <button
-                    type="button"
-                    onClick={() => avatarInputRef.current?.click()}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg transition-colors border border-zinc-700"
-                  >
-                    <Upload className="w-4 h-4" />
-                    Upload Avatar
-                  </button>
-                  <input
-                    type="file"
-                    ref={avatarInputRef}
-                    onChange={(e) => handleImageUpload(e, 'avatar')}
-                    accept="image/*"
-                    className="hidden"
-                  />
-                  {formData.photoURL && formData.photoURL.startsWith('data:image') && (
-                    <span className="text-xs text-green-400 flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> Image selected
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-zinc-500 mt-2">Max size: 5MB. Will be resized to 256x256.</p>
-              </div>
+              <ImageUploader
+                value={formData.photoURL}
+                onChange={val => setFormData({...formData, photoURL: val})}
+                label="Avatar Image"
+                maxWidth={256}
+                maxHeight={256}
+                aspectHint="1:1"
+              />
 
-              <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-1.5 flex items-center gap-2">
-                  <ImageIcon className="w-4 h-4" /> Banner Image
-                </label>
-                <div className="flex items-center gap-4">
-                  <button
-                    type="button"
-                    onClick={() => bannerInputRef.current?.click()}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg transition-colors border border-zinc-700"
-                  >
-                    <Upload className="w-4 h-4" />
-                    Upload Banner
-                  </button>
-                  <input
-                    type="file"
-                    ref={bannerInputRef}
-                    onChange={(e) => handleImageUpload(e, 'banner')}
-                    accept="image/*"
-                    className="hidden"
-                  />
-                  {formData.bannerURL && formData.bannerURL.startsWith('data:image') && (
-                    <span className="text-xs text-green-400 flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> Image selected
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-zinc-500 mt-2">Max size: 5MB. Will be resized to 1200x400.</p>
-              </div>
+              <ImageUploader
+                value={formData.bannerURL}
+                onChange={val => setFormData({...formData, bannerURL: val})}
+                label="Banner Image"
+                maxWidth={1200}
+                maxHeight={400}
+                aspectHint="3:1"
+              />
             </div>
 
             <div>

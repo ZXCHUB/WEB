@@ -6,6 +6,7 @@ import { motion } from 'motion/react';
 import { Plus, Trash2, Edit, Save, X, ShieldAlert, Code2, Users, Image as ImageIcon, FileText, Heart, Eye, AlertTriangle, Ban } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import RoleBadge from '../components/RoleBadge';
+import ImageUploader from '../components/ImageUploader';
 
 export default function AdminPanel() {
   const { user, userData, isAdmin, isModerator, isOwner, loading } = useAuth();
@@ -257,23 +258,14 @@ function ScriptsManager() {
             </div>
             
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-1.5 flex items-center gap-2">
-                  <ImageIcon className="w-4 h-4" /> Image URL
-                </label>
-                <input
-                  type="url"
-                  value={formData.image}
-                  onChange={e => setFormData({...formData, image: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-black/50 border border-zinc-800 rounded-lg text-white focus:outline-none focus:border-red-500 transition-colors"
-                  placeholder="https://..."
-                />
-                {formData.image && (
-                  <div className="mt-3 h-32 rounded-lg overflow-hidden border border-zinc-800">
-                    <img src={formData.image} alt="Preview" className="w-full h-full object-cover" />
-                  </div>
-                )}
-              </div>
+              <ImageUploader
+                value={formData.image}
+                onChange={val => setFormData({...formData, image: val})}
+                label="Script Image"
+                maxWidth={800}
+                maxHeight={450}
+                aspectHint="16:9"
+              />
             </div>
           </div>
 
@@ -540,23 +532,14 @@ function ExecutorsManager() {
             </div>
             
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-1.5 flex items-center gap-2">
-                  <ImageIcon className="w-4 h-4" /> Logo/Image URL
-                </label>
-                <input
-                  type="url"
-                  value={formData.image}
-                  onChange={e => setFormData({...formData, image: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-black/50 border border-zinc-800 rounded-lg text-white focus:outline-none focus:border-red-500 transition-colors"
-                  placeholder="https://..."
-                />
-                {formData.image && (
-                  <div className="mt-3 h-24 w-24 rounded-lg overflow-hidden border border-zinc-800 bg-black/50 p-2">
-                    <img src={formData.image} alt="Preview" className="w-full h-full object-contain" />
-                  </div>
-                )}
-              </div>
+              <ImageUploader
+                value={formData.image}
+                onChange={val => setFormData({...formData, image: val})}
+                label="Executor Logo"
+                maxWidth={256}
+                maxHeight={256}
+                aspectHint="1:1"
+              />
             </div>
           </div>
 
