@@ -1,0 +1,108 @@
+{
+  "entities": {
+    "Script": {
+      "title": "Script",
+      "description": "A Roblox script available on the platform.",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "The title of the script."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of what the script does."
+        },
+        "code": {
+          "type": "string",
+          "description": "The actual script code (e.g., loadstring)."
+        },
+        "executor": {
+          "type": "string",
+          "description": "The executor this script is designed for or compatible with."
+        },
+        "image": {
+          "type": "string",
+          "description": "URL to an image or thumbnail for the script."
+        },
+        "createdAt": {
+          "type": "timestamp",
+          "description": "When the script was added."
+        },
+        "authorId": {
+          "type": "string",
+          "description": "The UID of the admin who added the script."
+        }
+      },
+      "required": ["title", "description", "code", "createdAt", "authorId"]
+    },
+    "Executor": {
+      "title": "Executor",
+      "description": "A supported Roblox executor.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the executor."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the executor."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Working", "Patched", "Updating"],
+          "description": "The current status of the executor."
+        },
+        "image": {
+          "type": "string",
+          "description": "URL to the executor's logo."
+        },
+        "createdAt": {
+          "type": "timestamp",
+          "description": "When the executor was added."
+        },
+        "authorId": {
+          "type": "string",
+          "description": "The UID of the admin who added the executor."
+        }
+      },
+      "required": ["name", "status", "createdAt", "authorId"]
+    },
+    "User": {
+      "title": "User",
+      "description": "A user of the platform.",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "The user's email address."
+        },
+        "name": {
+          "type": "string",
+          "description": "The user's display name."
+        },
+        "role": {
+          "type": "string",
+          "enum": ["admin", "user"],
+          "description": "The user's role."
+        }
+      },
+      "required": ["email", "role"]
+    }
+  },
+  "firestore": {
+    "scripts": {
+      "schema": { "$ref": "#/entities/Script" },
+      "description": "Collection of all scripts."
+    },
+    "executors": {
+      "schema": { "$ref": "#/entities/Executor" },
+      "description": "Collection of all supported executors."
+    },
+    "users": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Collection of user profiles."
+    }
+  }
+}

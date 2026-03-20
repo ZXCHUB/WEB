@@ -1,0 +1,235 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: scripts
+    // Document ID: auto-generated
+    // Fields:
+    //   - title: string (required) - The title of the script.
+    //   - description: string (required) - A description of what the script does.
+    //   - code: string (required) - The actual script code.
+    //   - executor: string (optional) - The executor this script is designed for.
+    //   - image: string (optional) - URL to an image or thumbnail.
+    //   - createdAt: timestamp (required) - When the script was added.
+    //   - authorId: string (required) - The UID of the admin who added the script.
+    //
+    // Collection: executors
+    // Document ID: auto-generated
+    // Fields:
+    //   - name: string (required) - The name of the executor.
+    //   - description: string (optional) - A description of the executor.
+    //   - status: string (required) - 'Working', 'Patched', or 'Updating'.
+    //   - image: string (optional) - URL to the executor's logo.
+    //   - createdAt: timestamp (required) - When the executor was added.
+    //   - authorId: string (required) - The UID of the admin who added the executor.
+    //
+    // Collection: users
+    // Document ID: user UID
+    // Fields:
+    //   - email: string (required) - The user's email address.
+    //   - name: string (optional) - The user's display name.
+    //   - role: string (required) - 'admin' or 'user'.
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAppOwner() {
+      return isAuthenticated() &&
+        (
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'owner') ||
+          (request.auth.token.email == "zxchubadmin@gmail.com" && request.auth.token.email_verified == true)
+        );
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (
+          isAppOwner() ||
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
+          (request.auth.token.email == "marinzxcpartner@gmail.com" && request.auth.token.email_verified == true) ||
+          (request.auth.token.email == "marindonoga2005@gmail.com" && request.auth.token.email_verified == true)
+        );
+    }
+
+    function isModerator() {
+      return isAuthenticated() &&
+        (
+          isAdmin() ||
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'moderator')
+        );
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidStringLength(field, minLen, maxLen) {
+      return request.resource.data[field] is string &&
+        request.resource.data[field].size() >= minLen &&
+        request.resource.data[field].size() <= maxLen;
+    }
+
+    function isValidOptionalString(field, minLen, maxLen) {
+      return !('field' in request.resource.data) ||
+             (request.resource.data[field] is string &&
+              request.resource.data[field].size() >= minLen &&
+              request.resource.data[field].size() <= maxLen);
+    }
+
+    function isValidEmail(email) {
+      return email is string &&
+        email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidUrl(url) {
+      return url is string &&
+        (url.matches("^https://.*") || url.matches("^http://.*"));
+    }
+
+    function isValidOptionalUrl(field) {
+      return !(field in request.resource.data) ||
+             (request.resource.data[field] is string &&
+              (request.resource.data[field].matches("^https://.*") || request.resource.data[field].matches("^http://.*")));
+    }
+
+    function uidUnchanged() {
+      return !('authorId' in request.resource.data) ||
+        request.resource.data.authorId == request.auth.uid;
+    }
+
+    function uidNotModified() {
+      return !('authorId' in request.resource.data) ||
+        request.resource.data.authorId == resource.data.authorId;
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidScript() {
+      return hasOnlyAllowedFields(['title', 'description', 'code', 'executor', 'image', 'createdAt', 'authorId', 'likes', 'views', 'likedBy', 'isPremium']) &&
+             hasRequiredFields(['title', 'description', 'code', 'createdAt', 'authorId']) &&
+             isValidStringLength('title', 1, 100) &&
+             isValidStringLength('description', 1, 2000) &&
+             isValidStringLength('code', 1, 50000) &&
+             isValidOptionalString('executor', 1, 100) &&
+             isValidOptionalUrl('image') &&
+             (!('likes' in request.resource.data) || request.resource.data.likes is number) &&
+             (!('views' in request.resource.data) || request.resource.data.views is number) &&
+             (!('likedBy' in request.resource.data) || request.resource.data.likedBy is list) &&
+             (!('isPremium' in request.resource.data) || request.resource.data.isPremium is bool) &&
+             request.resource.data.createdAt is timestamp &&
+             request.resource.data.authorId is string;
+    }
+
+    function isValidExecutor() {
+      return hasOnlyAllowedFields(['name', 'description', 'status', 'image', 'website', 'purchaseUrl', 'createdAt', 'authorId']) &&
+             hasRequiredFields(['name', 'status', 'createdAt', 'authorId']) &&
+             isValidStringLength('name', 1, 100) &&
+             isValidOptionalString('description', 1, 2000) &&
+             request.resource.data.status in ['Working', 'Patched', 'Updating'] &&
+             isValidOptionalUrl('image') &&
+             request.resource.data.createdAt is timestamp &&
+             request.resource.data.authorId is string;
+    }
+
+    function isValidUser() {
+      return hasOnlyAllowedFields(['email', 'name', 'username', 'role', 'photoURL', 'bannerURL', 'bio', 'isOfficial', 'warns', 'bannedUntil', 'joinedAt', 'lastSeen']) &&
+             hasRequiredFields(['email', 'role']) &&
+             isValidEmail(request.resource.data.email) &&
+             isValidOptionalString('name', 1, 100) &&
+             isValidOptionalString('username', 1, 32) &&
+             isValidOptionalString('photoURL', 1, 100000) &&
+             isValidOptionalString('bannerURL', 1, 100000) &&
+             isValidOptionalString('bio', 1, 500) &&
+             (!('isOfficial' in request.resource.data) || request.resource.data.isOfficial is bool) &&
+             (!('warns' in request.resource.data) || request.resource.data.warns is number) &&
+             (!('bannedUntil' in request.resource.data) || request.resource.data.bannedUntil is timestamp || request.resource.data.bannedUntil == null) &&
+             request.resource.data.role in ['owner', 'admin', 'moderator', 'verified', 'user'];
+    }
+
+    function isValidComment() {
+      return hasOnlyAllowedFields(['targetId', 'content', 'authorId', 'createdAt']) &&
+             hasRequiredFields(['targetId', 'content', 'authorId', 'createdAt']) &&
+             isValidStringLength('targetId', 1, 100) &&
+             isValidStringLength('content', 1, 1000) &&
+             request.resource.data.createdAt is timestamp &&
+             request.resource.data.authorId is string;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    function isOnlyUpdatingStats() {
+      let diff = request.resource.data.diff(resource.data);
+      return diff.affectedKeys().hasOnly(['likes', 'likedBy', 'views']);
+    }
+
+    match /scripts/{scriptId} {
+      allow read: if true;
+      allow create: if isAdmin() && isValidScript() && uidUnchanged();
+      allow update: if (isAdmin() && isValidScript() && uidNotModified() && request.resource.data.createdAt == resource.data.createdAt) ||
+                       (isOnlyUpdatingStats() && isValidScript());
+      allow delete: if isAdmin();
+    }
+
+    match /executors/{executorId} {
+      allow read: if true;
+      allow create: if isAdmin() && isValidExecutor() && uidUnchanged();
+      allow update: if isAdmin() && isValidExecutor() && uidNotModified() && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isAdmin();
+    }
+
+    match /users/{userId} {
+      // Users can read their own profile, admins can read all
+      allow read: if true; // Allow reading all profiles for public display
+      
+      // Users can create their own profile, but cannot make themselves admin unless they are already admin
+      allow create: if isAuthenticated() && isOwner(userId) && isValidUser() && 
+                    ((request.resource.data.role == 'user') || isAdmin());
+                    
+      // Users can update their own profile, but cannot change their role
+      allow update: if isAuthenticated() && isValidUser() && 
+                    (
+                      (isOwner(userId) && request.resource.data.role == resource.data.role && request.resource.data.warns == resource.data.warns && request.resource.data.bannedUntil == resource.data.bannedUntil) || 
+                      isAdmin()
+                    );
+                    
+      allow delete: if isAdmin();
+    }
+
+    match /comments/{commentId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && isValidComment() && uidUnchanged() && 
+                    (!exists(/databases/$(database)/documents/users/$(request.auth.uid)) || 
+                     get(/databases/$(database)/documents/users/$(request.auth.uid)).data.bannedUntil == null || 
+                     get(/databases/$(database)/documents/users/$(request.auth.uid)).data.bannedUntil < request.time);
+      allow update: if isOwner(resource.data.authorId) && isValidComment() && uidNotModified() && request.resource.data.createdAt == resource.data.createdAt && request.resource.data.targetId == resource.data.targetId;
+      allow delete: if isOwner(resource.data.authorId) || isModerator();
+    }
+  }
+}
