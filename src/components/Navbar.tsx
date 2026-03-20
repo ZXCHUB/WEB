@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Code2, ShieldAlert, Settings, LogIn, LogOut, Menu, LayoutDashboard, Upload, Bookmark, User as UserIcon, MessageSquare, Youtube, FileText, Shield, Code, ThumbsDown, CheckCircle2 } from 'lucide-react';
+import { Code2, ShieldAlert, Settings, LogIn, LogOut, Menu, LayoutDashboard, Upload, Bookmark, User as UserIcon, MessageSquare, Youtube, FileText, Shield, Code, ThumbsDown, CheckCircle2, Key } from 'lucide-react';
 
 export default function Navbar() {
   const { user, userData, isAdmin, isModerator, login, logout } = useAuth();
@@ -32,6 +32,9 @@ export default function Navbar() {
           </Link>
           <Link to="/executors" className="text-zinc-400 hover:text-red-400 transition-colors font-medium">
             Executors
+          </Link>
+          <Link to="/getkey" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600/10 hover:bg-red-600/20 text-red-400 hover:text-red-300 transition-colors font-medium border border-red-900/30 text-sm">
+            <Key className="w-3.5 h-3.5" /> Get Key
           </Link>
           
           {user ? (

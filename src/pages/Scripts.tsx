@@ -52,13 +52,14 @@ export default function Scripts() {
     navigator.clipboard.writeText(code);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
-    
-    // Increment views
+  };
+
+  const openScript = async (script: Script) => {
+    setSelectedScript(script);
+    // Increment views when modal opens
     try {
-      const scriptRef = doc(db, 'scripts', id);
-      await updateDoc(scriptRef, {
-        views: increment(1)
-      });
+      const scriptRef = doc(db, 'scripts', script.id);
+      await updateDoc(scriptRef, { views: increment(1) });
     } catch (error) {
       console.error("Error updating views:", error);
     }
@@ -255,7 +256,7 @@ export default function Scripts() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        setSelectedScript(script);
+                        openScript(script);
                       }}
                       className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600/10 hover:bg-red-600/20 text-red-500 transition-colors text-sm font-bold border border-red-900/30"
                     >
